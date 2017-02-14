@@ -35,7 +35,7 @@ gulp.task("closure", ["clean"], function () {
     return gulp.src(["src/js/**/*.js", "src/script.js"])
         .pipe(sourcemaps.init())
         .pipe(closure({
-            compilation_level: "SIMPLE",
+            compilation_level: "ADVANCED",
             language_in: "ECMASCRIPT6_STRICT",
             language_out: "ECMASCRIPT5_STRICT",
             output_wrapper: "onload=function(){\n%output%\n};",
