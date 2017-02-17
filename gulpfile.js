@@ -2,12 +2,13 @@
 
 let gulp = require("gulp"),
     zip = require("gulp-zip"),
-    sass = require("gulp-sass"),
     size = require("gulp-size"),
-    concat = require("gulp-concat"),
-    insert = require("gulp-insert"),
+    postcss = require("gulp-postcss"),
+    rename = require("gulp-rename"),
     server = require("gulp-express"),
-    closure = require("google-closure-compiler").gulp(),
+    concat = require("gulp-concat"),
+    uglifyjs = require("uglify-js-harmony"),
+    minifier = require("gulp-uglify/minifier"),
     sourcemaps = require("gulp-sourcemaps"),
     pump = require("pump"),
     del = require("del");
@@ -21,31 +22,27 @@ gulp.task("copy", ["clean"], function () {
         .pipe(gulp.dest("dist"));
 });
 
-gulp.task("sass", ["clean"], function () {
-    return gulp.src("src/style.scss")
+gulp.task("postcss", ["clean"], function () {
+    return gulp.src("src/style.pcss")
         .pipe(sourcemaps.init())
-        .pipe(sass({
-            outputStyle: "compressed"
-        }).on("error", sass.logError))
+        .pipe(postcss())
+        .pipe(rename({extname:".css"}))
         .pipe(sourcemaps.write("."))
         .pipe(gulp.dest("dist"));
 });
 
-gulp.task("closure", ["clean"], function () {
-    return gulp.src(["src/js/**/*.js", "src/script.js"])
-        .pipe(sourcemaps.init())
-        .pipe(closure({
-            compilation_level: "ADVANCED",
-            language_in: "ECMASCRIPT6_STRICT",
-            language_out: "ECMASCRIPT5_STRICT",
-            output_wrapper: "onload=function(){\n%output%\n};",
-            js_output_file: "script.js"
-        }))
-        .pipe(sourcemaps.write("."))
-        .pipe(gulp.dest("dist"));
+gulp.task("uglify", ["clean"], function (cb) {
+    pump([
+        gulp.src(["src/js/**/*.js", "src/script.js"]),
+        sourcemaps.init(),
+        concat("script.js"),
+        minifier({}, uglifyjs),
+        sourcemaps.write("."),
+        gulp.dest("dist")
+    ], cb);
 });
 
-gulp.task("zip", ["clean", "sass", "closure", "copy"], function () {
+gulp.task("zip", ["clean", "postcss", "uglify", "copy"], function () {
     return gulp.src(["dist/index.html", "dist/script.js", "dist/style.css"])
         .pipe(zip("dist.zip"))
         .pipe(size({ title: "Build", pretty: false }))
@@ -61,4 +58,4 @@ gulp.task("watch", ["server"], function () {
     gulp.watch("src/**/*.*", ["server"]);
 });
 
-gulp.task("default", ["clean", "sass", "closure", "copy", "zip"]);
+gulp.task("default", ["clean", "postcss", "uglify", "copy", "zip"]);
